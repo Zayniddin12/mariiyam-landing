@@ -1,0 +1,24 @@
+before_script:
+  - docker login $CI_REGISTRY --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD
+stages:
+  - build_staging
+  - deploy_staging
+
+build_image_staging:
+  stage: build_staging
+  image: registry.uicgroup.tech/devops/docker:dind
+  script:
+    - make vars-input
+    - make build-image TAG=$CI_PIPELINE_IID SERVICE_NAME=$CI_PROJECT_NAME PROJECT_NAME=$CI_PROJECT_NAMESPACE REGISTRY=$CI_REGISTRY ENV_TAG=latest
+    - make push-image TAG=$CI_PIPELINE_IID SERVICE_NAME=$CI_PROJECT_NAME PROJECT_NAME=$CI_PROJECT_NAMESPACE REGISTRY=$CI_REGISTRY ENV_TAG=latest
+  only:
+    - master
+
+deploy_image_swarm:
+  stage: deploy_staging
+  script:
+    - docker service update --with-registry-auth --image registry.uicgroup.tech/a.xamroyev/mariyam-landing-front:$CI_PIPELINE_IID 'mariyam_landing'
+  only:
+    - master
+  tags: 
+    - 228_server
